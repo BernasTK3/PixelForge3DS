@@ -1,0 +1,54 @@
+name: Build PixelForge 3DS
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: devkitpro/devkitarm:latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install 3DS dependencies
+        shell: bash
+        run: |
+          set -euxo pipefail
+          if command -v dkp-pacman >/dev/null 2>&1; then
+            dkp-pacman -Sy --noconfirm --needed 3ds-dev 3ds-tools
+          elif command -v pacman >/dev/null 2>&1; then
+            pacman -Sy --noconfirm --needed 3ds-dev 3ds-tools
+          else
+            echo 'ERROR: neither dkp-pacman nor pacman is installed in this container'
+            exit 1
+          fi
+
+      - name: Verify toolchain
+        shell: bash
+        run: |
+          set -euxo pipefail
+          echo "DEVKITPRO=${DEVKITPRO:-unset}"
+          echo "DEVKITARM=${DEVKITARM:-unset}"
+          test -n "${DEVKITPRO:-}"
+          test -n "${DEVKITARM:-}"
+          test -x "$DEVKITARM/bin/arm-none-eabi-gcc"
+          "$DEVKITARM/bin/arm-none-eabi-gcc" --version
+          command -v make
+          command -v 3dsxtool
+
+      - name: Build 3DSX
+        shell: bash
+        run: |
+          set -euxo pipefail
+          make
+          test -s PixelForge3DS.3dsx
+
+      - name: Upload 3DSX
+        uses: actions/upload-artifact@v4
+        with:
+          name: PixelForge3DS-3dsx
+          path: PixelForge3DS.3dsx
+          if-no-files-found: error
