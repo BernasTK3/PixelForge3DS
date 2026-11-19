@@ -1,0 +1,24 @@
+name: Build PixelForge 3DS
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: devkitpro/devkitarm:latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install 3DS toolchain and dependencies
+        run: |
+          pacman -Sy --noconfirm --needed 3ds-dev
+      - name: Build 3DSX
+        run: make
+      - name: Upload playable homebrew
+        uses: actions/upload-artifact@v4
+        with:
+          name: PixelForge3DS-3dsx
+          path: PixelForge3DS.3dsx
+          if-no-files-found: error
